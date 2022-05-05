@@ -25,10 +25,10 @@ This project contains a C++ implementation of the **Lox** language following the
 
 - [x] 9. [**Control Flow**](http://www.craftinginterpreters.com/control-flow.html)
   - [x] Challenge 1: Add break and continue statements to the Lox interpreter at the end of Chapter 9. Each of those statements consist of just the keyword followed by a semicolon--it's the semantics that are interesting. Make sure they work (like they would in C) with both while and for loops. Having either one outside of a loop is a syntax error.
-  - [x] Enrich your Lox interpreter from the end of Chapter 9 with a switch-case construct. Like the C equivalent, the switch keyword is followed by an expression that will be compared for equality with the expression following each case in  its body. Unlike the C family of languages, this will not support case fall-through. Instead, each case will control a single statement (possibly a block), so the break statement at the end of the case is unnecessary (and may be a syntax error, depending on its placement). Don't forget the optional default alternative at the end!
+  - [x] Challenge 2: Enrich your Lox interpreter from the end of Chapter 9 with a switch-case construct. Like the C equivalent, the switch keyword is followed by an expression that will be compared for equality with the expression following each case in  its body. Unlike the C family of languages, this will not support case fall-through. Instead, each case will control a single statement (possibly a block), so the break statement at the end of the case is unnecessary (and may be a syntax error, depending on its placement). Don't forget the optional default alternative at the end!
   
 
--  10. [**Functions**](http://www.craftinginterpreters.com/functions.html)
-  -  Challenge 2: Add anonymous function (lambdas) syntax.
+- [] 10. [**Functions**](http://www.craftinginterpreters.com/functions.html)
+
 
 
