@@ -175,6 +175,3 @@ struct Case: Stmt, public std::enable_shared_from_this<Case> {
   const std::shared_ptr<Expr> condition;
   const std::shared_ptr<Stmt> body;
 };
-
-
-

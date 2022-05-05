@@ -24,7 +24,8 @@ class Parser
   int current = 0;
   bool allowExpression;
   bool foundExpression = false;
-  int numLoops = 0;
+  // count number of loops
+  int numOfLoops = 0;
 
 
 public:
@@ -93,13 +94,13 @@ private:
     if (match(BREAK)) return breakStatement();
     if (match(CONTINUE)) return continueStatement();
     if (match(SWITCH)) return switchStatement();
-    
-
     return expressionStatement();
   }
 
+  // MARK - forStatement
   std::shared_ptr<Stmt> forStatement() 
   {
+    numOfLoops++;
     consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
     std::shared_ptr<Stmt> initializer;
@@ -128,7 +129,6 @@ private:
 
     
     try {
-      numLoops++;
       if (increment != nullptr) 
       {
         body = std::make_shared<Block>(std::vector<std::shared_ptr<Stmt>>{body, std::make_shared<Expression>(increment)});
@@ -149,16 +149,18 @@ private:
 
     } catch (ParseError error) {    }
 
-    numLoops--;
+    numOfLoops--;
     return nullptr;
   }
 
+  // MARK - exitStatement
   std::shared_ptr<Exit> exitStatement() 
   {
-    consume(SEMICOLON, "Expect ';' after 'exit'");
+    consume(SEMICOLON, "Expect ';' after 'exit'.");
     return std::make_shared<Exit>();
   }
 
+  // MARK - ifStatement
   std::shared_ptr<Stmt> ifStatement() 
   {
     consume(LEFT_PAREN, "Expect '(' after 'if'.");
@@ -174,26 +176,28 @@ private:
     return std::make_shared<If>(condition, thenBranch, elseBranch);
   }
 
+  // MARK - WhileStatement
   std::shared_ptr<Stmt> whileStatement() 
   {
-    std::cout << "whileStatement" << std::endl;
     consume(LEFT_PAREN, "Expect '(' after 'while'.");
     std::shared_ptr<Expr> condition = expression();
     consume(RIGHT_PAREN, "Expect ')' after condition.");
 
     try{
-      numLoops++;
+      numOfLoops++;
       std::shared_ptr<Stmt> body = statement();
-      numLoops--;
+      // loops decrement numOfLoops when they are exited
+      numOfLoops--;
       return std::make_shared<While>(condition, body, true);
     } catch (ParseError& error) { 
-      numLoops--;
+      numOfLoops--;
       return nullptr;
     }
 
     return {};
   }
 
+  // MARK - PrintStatement
   std::shared_ptr<Stmt> printStatement() 
   {
     std::shared_ptr<Expr> value = expression();
@@ -203,26 +207,30 @@ private:
 
   std::shared_ptr<Stmt> breakStatement() 
   {
-    if (numLoops == 0)
+    if (numOfLoops == 0)
     {
       throw error(previous(), "'break' is only allowed in a loop.");
+      synchronize();
     }
     consume(SEMICOLON, "Expect ';' after 'break'.");
     return std::make_shared<Break>();
   }
 
+  // MARK - ContinueStatement
   std::shared_ptr<Stmt> continueStatement() 
   {
-    std::cout << "loops: " << numLoops << std::endl;
-    if (numLoops == 0) 
+    if (numOfLoops == 0) 
     {
-      throw error(previous(), "Cannot use 'continue' outside of a loop.");
+      
+      throw error(previous(), "'continue' is only allowed in a loop.");
+      synchronize();
     } 
 
     consume(SEMICOLON, "Expect ';' after 'continue'.");
     return std::make_shared<Continue>();
   }
 
+  // MARK - VarDeclaration
   std::shared_ptr<Stmt> varDeclaration() 
   {
     Token name = consume(IDENTIFIER, "Expect variable name.");
@@ -236,11 +244,9 @@ private:
     return std::make_shared<Var>(std::move(name), initializer);
   }
 
-
-
+  // MARK - ExpressionStatement
   std::shared_ptr<Stmt> expressionStatement() 
   {
-    
     
     std::shared_ptr<Expr> expr = expression();
     if (allowExpression) {
@@ -251,15 +257,14 @@ private:
     return std::make_shared<Expression>(expr);
   }
 
-
-
+  // MARK - switchStatement
   std::shared_ptr<Stmt> switchStatement() 
   { 
     consume(LEFT_PAREN, "Expect '(' after 'switch'.");
     std::shared_ptr<Expr> expr = expression();
-    consume(RIGHT_PAREN, "Expect ')' after condition.");
+    consume(RIGHT_PAREN, "Expect ')' after switch target.");
 
-    consume(LEFT_BRACE, "Expect '{' after switch condition.");
+    consume(LEFT_BRACE, "Expect '{' after switch and target.");
 
     std::vector<std::shared_ptr<Case>> cases;
     std::shared_ptr<Stmt> defaultCase = nullptr;
@@ -267,29 +272,30 @@ private:
 
     while (!check(RIGHT_BRACE) && !isAtEnd()) 
     {
-      if (match(CASE)) 
+      if (match(DEFAULT))
       {
-        if (defaultCount > 0) 
+        if (defaultCount != 0) 
         {
-          throw error(peek(), "Cannot have multiple default cases in one 'switch' statement.");
-        }
-        std::shared_ptr<Expr> value = expression();
-        consume(COLON, "Expect ':' after case expression.");
-        std::shared_ptr<Stmt> body = statement();
-        cases.push_back(std::make_shared<Case>(value, body));
-      } else if (match(DEFAULT)) 
-      {
-        if (defaultCount > 0) 
-        {
-          throw error(peek(), "Only one defualt branch alowed in one 'switch' statement.");
+          error(previous(), "Only 1 default branch allowed.");
           synchronize();
+        } else {
+          consume(COLON, "Expect ':' after 'default'.");
+          defaultCase = statement();
+          defaultCount++;
         }
-        consume(COLON, "Expect ':' after default case.");
-        defaultCase = statement();
-        defaultCount++;
-      } else 
-      {
-        throw error(peek(), "Expect 'case' or 'default' as it must begin.");
+
+      } else if (match(CASE)) {
+        if (defaultCount != 0) 
+        {
+          error(previous(), "'default' must be the last branch.");
+        }
+
+        std::shared_ptr<Expr> expr = expression();
+        consume(COLON, "Expect ':' after case expression.");
+        cases.push_back(std::make_shared<Case>(expr, statement()));
+
+      }  else {
+        error(peek(), "Every branch of switch must begin with 'case' or 'default'.");
         synchronize();
       }
     }
@@ -299,11 +305,13 @@ private:
 
   }
 
+  // MARK - block
   std::vector<std::shared_ptr<Stmt>> block() 
   {
     std::vector<std::shared_ptr<Stmt>> statements;
 
-    while (!check(RIGHT_BRACE) && !isAtEnd()) {
+    while (!check(RIGHT_BRACE) && !isAtEnd()) 
+    {
       statements.push_back(declaration());
     }
 
@@ -350,7 +358,6 @@ private:
       std::shared_ptr<Expr> right = equality();
       expr = std::make_shared<Logical>(expr, std::move(op), right);
     }
-
     return expr;
   }
 
@@ -364,7 +371,6 @@ private:
       std::shared_ptr<Expr> right = comparison();
       expr = std::make_shared<Binary>(expr, std::move(op), right);
     }
-
     return expr;
   }
 
@@ -378,7 +384,6 @@ private:
       std::shared_ptr<Expr> right = term();
       expr = std::make_shared<Binary>(expr, std::move(op), right);
     }
-
     return expr;
   }
 
@@ -392,7 +397,6 @@ private:
       std::shared_ptr<Expr> right = factor();
       expr = std::make_shared<Binary>(expr, std::move(op), right);
     }
-
     return expr;
   }
 
@@ -406,7 +410,6 @@ private:
       std::shared_ptr<Expr> right = unary();
       expr = std::make_shared<Binary>(expr, std::move(op), right);
     }
-
     return expr;
   }
 
@@ -418,7 +421,6 @@ private:
       std::shared_ptr<Expr> right = unary();
       return std::make_shared<Unary>(std::move(op), right);
     }
-
     return primary();
   }
 
@@ -440,11 +442,8 @@ private:
       consume(RIGHT_PAREN, "Expect ')' after expression.");
       return std::make_shared<Grouping>(expr);
     }
-
     throw error(peek(), "Expect expression.");
   }
-
-  
 
   template <class... T>
   bool match(T... type) {

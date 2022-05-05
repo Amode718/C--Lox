@@ -1,0 +1,10 @@
+var test = 1;
+if (test == 2312) {
+    print("a");
+} else {
+    print("b");
+}
+
+
+// output:
+// b

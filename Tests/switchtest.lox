@@ -1,0 +1,15 @@
+var a = 3;
+
+switch (a) {
+    case 1:
+        print("a is 1");
+    case 2:
+        print("a is superman");
+    case 3:
+        print("a is tiger");
+    default:
+        print("a batman");
+}
+
+// output:
+// a is tiger

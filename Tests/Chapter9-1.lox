@@ -1,0 +1,18 @@
+var temp;
+var a = 1;
+var b = 0;
+for (var i = 1; i < 8; i = i + 1) {
+  print a;
+  temp = a;
+  a = b;
+  b = temp + a;
+}
+
+// output:
+// 1
+// 0
+// 1
+// 1
+// 2
+// 3
+// 5

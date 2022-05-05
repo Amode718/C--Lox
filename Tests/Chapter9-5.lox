@@ -1,0 +1,15 @@
+print 1 or 0;
+print nil and "yes";
+print 1 and 3;
+print nil or "yes";
+print "yes" or "no";
+print "yes" and "no";
+
+
+// output:
+// 1
+// nil
+// 3
+// yes
+// yes
+// no

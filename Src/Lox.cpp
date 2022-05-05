@@ -12,11 +12,14 @@
 //#include "RpnPrinter.h"
 
 std::string readFile(std::string_view path) {
+  //https://github.com/the-lambda-way/CppLox/blob/master/chapter7/Lox.cpp
+  // used help to be able to read file easily as i did not know how to fully implament 
+  // from the book.
   std::ifstream file{path.data(), std::ios::in | std::ios::binary | std::ios::ate};
   if (!file) 
   {
     std::cout << "Failed to open file " << path << ": " << std::strerror(errno) << "\n";
-    std::exit(74);
+    std::exit(0);
   }
 
   std::string contents;
@@ -52,8 +55,8 @@ void runFile(std::string_view path) {
   run(contents);
 
   // Indicate an error in the exit code.
-  if (hadError) std::exit(65);
-  if (hadRuntimeError) std::exit(70);
+  if (hadError) std::exit(0);
+  if (hadRuntimeError) std::exit(0);
 }
 
 void runPrompt() 
@@ -66,8 +69,6 @@ void runPrompt()
     if (!std::getline(std::cin, line)) break;
     // run(line);
     // hadError = false;
- 
-  
     Scanner scanner{line};
     std::vector<Token> tokens = scanner.scanTokens();
     Parser parser{tokens};
@@ -100,7 +101,7 @@ void runPrompt()
 int main(int argc, char* argv[]) {
   if (argc > 2) {
     std::cout << "Usage: mylox [script]" << std::endl;
-    std::exit(64);
+    std::exit(0);
   } else if (argc == 2) {
     runFile(argv[1]);
   } else {

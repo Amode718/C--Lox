@@ -1,3 +1,5 @@
+//Taken some of the implamintation of this header 
+//file form the book and how to correctly format
 #pragma once
 #include <iostream>
 #include <string_view>

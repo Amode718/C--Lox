@@ -1,3 +1,8 @@
+//help from https://github.com/veera-sivarajan/lang0/blob/master/src/Interpreter.cpp
+// https://github.com/TobiPristupin/lox/blob/master/Interpreter.cpp
+// https://github.com/chanryu/cloxx/blob/master/src/Interpreter.cpp
+// https://stackoverflow.com/questions/2074448/using-the-visitor-pattern-for-an-interpreter-in-c
+
 #pragma once
 #include <any>
 #include <iostream>
@@ -49,15 +54,19 @@ public:
   
 
 private:
-  std::any evaluate(std::shared_ptr<Expr> expr) {
+   //> evaluate
+  std::any evaluate(std::shared_ptr<Expr> expr) 
+  {
     return expr->accept(*this);
   }
+  //< evaluate
 
   void execute(std::shared_ptr<Stmt> stmt) {
     stmt->accept(*this);
   }
 
   void executeBlock(
+    //> execute Block
       const std::vector<std::shared_ptr<Stmt>>& statements,
       std::shared_ptr<Environment> environment) {
     std::shared_ptr<Environment> previous = this->environment;
@@ -74,63 +83,76 @@ private:
 
     this->environment = previous;
   }
-
+  //> execute Block
 public:
+ //> visitBlockStmt
   std::any visitBlockStmt(std::shared_ptr<Block> stmt) override 
   {
     executeBlock(stmt->statements, std::make_shared<Environment>(environment));
     return {};
   }
+  //< visitBlockStmt
 
+  //>visitBreakStmt
   std::any visitBreakStmt(std::shared_ptr<Break> stmt) override 
   {
     throw BreakException();
   }
+  //<visitBreakStmt
 
+  //visitContinueStmt
   std::any visitContinueStmt(std::shared_ptr<Continue> stmt) override 
   {
     throw ContinueException();
   }
+  //<visitContinueStmt
 
+  //> VisitSwitchStmt
   std::any visitSwitchStmt(std::shared_ptr<Switch> stmt) override 
   {
-    for (int i = 0; i < stmt->cases.size(); i++) {
-
-      if (isEqual(evaluate(stmt->cases[i]->condition), evaluate(stmt->condition))) {
+    // go through all cases
+    for (int i = 0; i < stmt->cases.size(); i++) 
+    {
+      if (isEqual(evaluate(stmt->cases[i]->condition), evaluate(stmt->condition))) 
+      {
         execute(stmt->cases[i]->body);
         return {};
-
       }
-    
     }
-
-    if (stmt->defaultCase) {
+    if (stmt->defaultCase) 
+    {
       execute(stmt->defaultCase);
     }
-
     return {};
-    
   }
+  //> VisitSwitchStmt
 
+  //> visitCaseStmt
   std::any visitCaseStmt(std::shared_ptr<Case> stmt) override 
   {
     execute(stmt);
     return {};
   }
+  //> visitCaseStmt
 
+  //> visitExpressionStmt
   std::any visitExpressionStmt(std::shared_ptr<Expression> stmt) override 
   {
     evaluate(stmt->expression);
     return {};
   }
+  //> visitExpressionStmt
 
+  //> visitPrintStmt
   std::any visitPrintStmt(std::shared_ptr<Print> stmt) override 
   {
     std::any value = evaluate(stmt->expression);
     std::cout << stringify(value) << "\n";
     return {};
   }
+  //> visitPrintStmt
 
+  //> visitIfStmt
   std::any visitIfStmt(std::shared_ptr<If> stmt) override 
   {
     if (isTruthy(evaluate(stmt->condition))) 
@@ -142,7 +164,9 @@ public:
     }
     return {};
   }
+  //> visitIfStmt
 
+  //> visitWhileStmt
   std::any visitWhileStmt(std::shared_ptr<While> stmt) override 
   {
     try {
@@ -166,29 +190,9 @@ public:
     }
     return {};
   }
+  //> visitWhileStmt
 
-  /*std::any visitWhileStmt(std::shared_ptr<While> stmt) override 
-  {
-    try {
-      while (isTruthy(evaluate(stmt->condition))) {
-        execute(stmt->body);
-      
-      }
-    } catch (RuntimeError error) {
-        if (BreakException error) {
-        return {};
-      } else if (ContinueException error) {
-        if (!stmt->isWhile) {
-          std::shared_ptr<Block> body = std::static_pointer_cast<Block>(stmt->body);
-          auto expr = body->statements[1];
-          execute(expr);
-        }
-        execute(stmt);
-      } 
-    }
-    return {};  
-  }*/
-
+  //>visitVarStmt
   std::any visitVarStmt(std::shared_ptr<Var> stmt) override 
   {
     std::any value = nullptr;
@@ -199,12 +203,13 @@ public:
     environment->define(stmt->name.lexeme, std::move(value));
     return {};
   }
+  //>visitVarStmt
 
   std::any visitAssignExpr(std::shared_ptr<Assign> expr) override {std::any value = evaluate(expr->value);
     environment->assign(expr->name, value);
     return value;
   }
-
+   //> visit-binary
   std::any visitBinaryExpr(std::shared_ptr<Binary> expr) override 
   {
     std::any left = evaluate(expr->left);
@@ -215,60 +220,46 @@ public:
       case EQUAL_EQUAL: return isEqual(left, right);
       case GREATER:
         checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) >
-               std::any_cast<double>(right);
+        return std::any_cast<double>(left) > std::any_cast<double>(right);
       case GREATER_EQUAL:
         checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) >=
-               std::any_cast<double>(right);
+        return std::any_cast<double>(left) >= std::any_cast<double>(right);
       case LESS:
         checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) <
-               std::any_cast<double>(right);
+        return std::any_cast<double>(left) < std::any_cast<double>(right);
       case LESS_EQUAL:
         checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) <=
-               std::any_cast<double>(right);
+        return std::any_cast<double>(left) <= std::any_cast<double>(right);
       case MINUS:
         checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) -
-               std::any_cast<double>(right);
+        return std::any_cast<double>(left) - std::any_cast<double>(right);
       case PLUS:
-        if (left.type() == typeid(double) &&
-            right.type() == typeid(double)) {
-          return std::any_cast<double>(left) +
-                 std::any_cast<double>(right);
+        if (left.type() == typeid(double) && right.type() == typeid(double)) {
+          return std::any_cast<double>(left) + std::any_cast<double>(right);
         }
 
-        if (left.type() == typeid(std::string) &&
-            right.type() == typeid(std::string)) {
-          return std::any_cast<std::string>(left) +
-                 std::any_cast<std::string>(right);
+        if (left.type() == typeid(std::string) && right.type() == typeid(std::string)) {
+          return std::any_cast<std::string>(left) + std::any_cast<std::string>(right);
         }
-
         // break;
 
         throw RuntimeError{expr->op,
             "Operands must be two numbers or two strings."};
-      case SLASH:
-        checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) /
-               std::any_cast<double>(right);
-      case STAR:
-        checkNumberOperands(expr->op, left, right);
-        return std::any_cast<double>(left) *
-               std::any_cast<double>(right);
+      case SLASH: checkNumberOperands(expr->op, left, right);
+        return std::any_cast<double>(left) / std::any_cast<double>(right);
+      case STAR: checkNumberOperands(expr->op, left, right);
+        return std::any_cast<double>(left) * std::any_cast<double>(right);
     }
 
     // Unreachable.
     return {};
   }
-
-  std::any visitGroupingExpr(
-      std::shared_ptr<Grouping> expr) override {
+  //> visit-grouping
+  std::any visitGroupingExpr(std::shared_ptr<Grouping> expr) override 
+  {
     return evaluate(expr->expression);
   }
-
+  //> visit-grouping
   std::any visitLiteralExpr(std::shared_ptr<Literal> expr) override {
     return expr->value;
   }
@@ -310,7 +301,7 @@ public:
 
   std::any visitExitStmt(std::shared_ptr<Exit> stmt) override 
   {
-    exit(1);
+    exit(0);
   }
 
 
@@ -322,7 +313,7 @@ private:
     if (operand.type() == typeid(double)) return;
     throw RuntimeError{op, "Operand must be a number."};
   }
-
+  // MARK - checkNumberOperands
   void checkNumberOperands(const Token& op, const std::any& left, const std::any& right) {
     if (left.type() == typeid(double) &&
         right.type() == typeid(double)) {
@@ -331,7 +322,7 @@ private:
 
     throw RuntimeError{op, "Operands must be numbers."};
   }
-
+  // MARK: - isTruthy
   bool isTruthy(const std::any& object) 
   {
     if (object.type() == typeid(nullptr)) 
@@ -342,7 +333,7 @@ private:
     }
     return true;
   }
-
+  // MARK: - isEqual
   bool isEqual(const std::any& a, const std::any& b) 
   {
     if (a.type() == typeid(nullptr) && b.type() == typeid(nullptr)) 
@@ -374,13 +365,6 @@ private:
 
     if (object.type() == typeid(double)) 
     {
-
-      /*std::string text = std::to_string(std::any_cast<double>(object));
-      if (text[text.length() - 2] == '.' && text[text.length() - 1] == '0') 
-      {
-        text = text.substr(0, text.length() - 2);
-      }*/
-
       double number = std::any_cast<double>(object);
       std::string text = std::to_string(number);
 
@@ -389,6 +373,9 @@ private:
       //return text;
     }
 
+    //https://github.com/veera-sivarajan/lang0/blob/master/src/Interpreter.cpp
+    //string to true or false return
+    //string to object call
     if (object.type() == typeid(std::string)) {
       return std::any_cast<std::string>(object);
     }
@@ -399,3 +386,5 @@ private:
     return "Error in stringify: object type not recognized.";
   }
 };
+
+ 

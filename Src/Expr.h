@@ -1,3 +1,7 @@
+// Looked here at how to declare virtual memory and visiting
+// https://github.com/TobiPristupin/lox/blob/master/Expr.h decided to
+// used structs instead of class as they are public by defult, happen on stack,
+// and have a value data type instead of just a reference.
 #pragma once
 #include <any>
 #include <memory>
